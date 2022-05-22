@@ -21,5 +21,6 @@ bin-release/
 
 *.pth
 
-/final_projects/images
-/final_projects/converted_images
+/final_projects/my_images/data
+
+**/__pycache__
