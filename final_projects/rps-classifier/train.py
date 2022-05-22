@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 import torch
 import torch.nn as nn
@@ -47,6 +48,8 @@ def get_model(config):
 
 
 def main(config):
+    sys.stdout = open(config.model_fn + ".txt", 'w')
+
     # Set device based on user defined configuration.
     device = torch.device('cpu') if config.gpu_id < 0 else torch.device('cuda:%d' % config.gpu_id)
 
@@ -67,6 +70,9 @@ def main(config):
 
     trainer = Trainer(config)
     trainer.train(model, crit, optimizer, train_loader, valid_loader)
+    test_accuracy = trainer.test(test_loader)
+
+    sys.stdout.close()
 
 if __name__ == '__main__':
     config = define_argparser()

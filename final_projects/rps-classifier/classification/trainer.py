@@ -168,6 +168,8 @@ class Trainer():
 
     def __init__(self, config):
         self.config = config
+        self.validation_engine = None
+        self.best_model = None
 
     def train(
             self,
@@ -178,14 +180,14 @@ class Trainer():
             MyEngine.train,
             model, crit, optimizer, self.config
         )
-        validation_engine = MyEngine(
+        self.validation_engine = MyEngine(
             MyEngine.validate,
             model, crit, optimizer, self.config
         )
 
         MyEngine.attach(
             train_engine,
-            validation_engine,
+            self.validation_engine,
             verbose=self.config.verbose
         )
 
@@ -195,13 +197,13 @@ class Trainer():
         train_engine.add_event_handler(
             Events.EPOCH_COMPLETED,  # event
             run_validation,  # function
-            validation_engine, valid_loader,  # arguments
+            self.validation_engine, valid_loader,  # arguments
         )
-        validation_engine.add_event_handler(
+        self.validation_engine.add_event_handler(
             Events.EPOCH_COMPLETED,  # event
             MyEngine.check_best,  # function
         )
-        validation_engine.add_event_handler(
+        self.validation_engine.add_event_handler(
             Events.EPOCH_COMPLETED,  # event
             MyEngine.save_model,  # function
             train_engine, self.config,  # arguments
@@ -212,6 +214,29 @@ class Trainer():
             max_epochs=self.config.n_epochs,
         )
 
-        model.load_state_dict(validation_engine.best_model)
-
+        model.load_state_dict(self.validation_engine.best_model)
+        self.best_model = model
         return model
+
+
+    def test(self, test_loader):
+        print("====== PREDICT TEST DATA ======")
+        print("Test:", len(test_loader.dataset))
+        self.best_model.eval()
+        with torch.no_grad():
+            accuracy_sum = 0
+            for i, (x, y) in enumerate(test_loader):
+                x, y = x.to(self.validation_engine.device), y.to(self.validation_engine.device)
+
+                y_hat = self.best_model(x)
+                loss = self.validation_engine.crit(y_hat, y)
+                if isinstance(y, torch.LongTensor) or isinstance(y, torch.cuda.LongTensor):
+                    accuracy = (torch.argmax(y_hat, dim=-1) == y).sum() / float(y.size(0))
+                else:
+                    accuracy = 0
+                print(f'{i + 1}/{len(test_loader)} - loss: {loss}, accuracy: {accuracy}')
+                accuracy_sum += accuracy
+            accuracy_mean = accuracy_sum / len(test_loader)
+        print(f'TEST DATA ACCURACY: {accuracy_mean}')
+        return accuracy_mean
+
