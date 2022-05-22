@@ -33,7 +33,11 @@ class ConvolutionalClassifier(nn.Module):
         super().__init__()
 
         self.blocks = nn.Sequential(  # |x| = (n, 1, 28, 28)
-            ConvolutionBlock(1, 32),  # (n, 32, 14, 14)
+            ConvolutionBlock(3, 4),
+            ConvolutionBlock(4, 5),
+            ConvolutionBlock(5, 8),
+            ConvolutionBlock(8, 16),
+            ConvolutionBlock(16, 32),
             ConvolutionBlock(32, 64),  # (n, 64, 7, 7)
             ConvolutionBlock(64, 128),  # (n, 128, 4, 4)
             ConvolutionBlock(128, 256),  # (n, 256, 2, 2)
