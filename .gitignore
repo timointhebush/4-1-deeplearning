@@ -24,3 +24,5 @@ bin-release/
 /final_projects/my_images/data
 
 **/__pycache__
+
+*.zip
