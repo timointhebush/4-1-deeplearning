@@ -1,6 +1,6 @@
 import os
 
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, ConcatDataset
 
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -22,26 +22,53 @@ def load_dataset(
 
 
 def get_loaders(config, input_size):
-    data_transforms = {
+    data_transforms_augmentations = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(input_size),
             transforms.RandomHorizontalFlip(),
+            transforms.RandomGrayscale(),
             transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
         'test': transforms.Compose([
-            transforms.Resize(input_size),
-            transforms.CenterCrop(input_size),
+            transforms.RandomResizedCrop(input_size),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomGrayscale(),
             transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+    }
+
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ]),
+        'test': transforms.Compose([
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ]),
     }
 
     dataset_name = config.dataset_name
-    train_set = load_dataset(
+    train_set1 = load_dataset(
         data_transforms, dataset_name=dataset_name, is_train=True
     )
-    test_set = load_dataset(
+    test_set1 = load_dataset(
         data_transforms, dataset_name=dataset_name, is_train=False
     )
+
+    train_set2 = load_dataset(
+        data_transforms_augmentations, dataset_name=dataset_name, is_train=True
+    )
+    test_set2 = load_dataset(
+        data_transforms_augmentations, dataset_name=dataset_name, is_train=False
+    )
+
+    train_set = ConcatDataset([train_set1, train_set2])
+    test_set = ConcatDataset([test_set1, test_set2])
 
     # Shuffle dataset to split into valid/test set.
     train_set, valid_set, test_set = divide_dataset(
