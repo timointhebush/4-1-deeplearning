@@ -22,53 +22,71 @@ def load_dataset(
 
 
 def get_loaders(config, input_size):
-    data_transforms_augmentations = {
+    data_transforms = {
         'train': transforms.Compose([
-            transforms.RandomResizedCrop(input_size),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomGrayscale(),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor()
         ]),
         'test': transforms.Compose([
-            transforms.RandomResizedCrop(input_size),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomGrayscale(),
+            transforms.Resize((input_size, input_size)),
+            transforms.ToTensor()
+        ]),
+    }
+
+    data_transforms_grayscale = {
+        'train': transforms.Compose([
+            transforms.Resize((input_size, input_size)),
+            transforms.Grayscale(3),
+            transforms.ToTensor()
+        ])
+    }
+
+    data_transforms_normalize = {
+        'train': transforms.Compose([
+            transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
     }
 
-    data_transforms = {
+    data_transforms_horizontal_flip = {
         'train': transforms.Compose([
+            transforms.RandomHorizontalFlip(),
             transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]),
-        'test': transforms.Compose([
+        ])
+    }
+
+    data_transforms_color_jitter = {
+        'train': transforms.Compose([
+            transforms.ColorJitter(0.5, 0.5, 0.5, 0.5),
             transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ]),
+        ])
     }
 
     dataset_name = config.dataset_name
-    train_set1 = load_dataset(
+    train_set_origin = load_dataset(
         data_transforms, dataset_name=dataset_name, is_train=True
     )
-    test_set1 = load_dataset(
+    train_set_gray_scale = load_dataset(
+        data_transforms_grayscale, dataset_name=dataset_name, is_train=True
+    )
+    train_set_normalize = load_dataset(
+        data_transforms_normalize, dataset_name=dataset_name, is_train=True
+    )
+    train_set_horizontal_flip = load_dataset(
+        data_transforms_horizontal_flip, dataset_name=dataset_name, is_train=True
+    )
+    train_set_color_jitter = load_dataset(
+        data_transforms_color_jitter, dataset_name=dataset_name, is_train=True
+    )
+    test_set = load_dataset(
         data_transforms, dataset_name=dataset_name, is_train=False
     )
 
-    train_set2 = load_dataset(
-        data_transforms_augmentations, dataset_name=dataset_name, is_train=True
-    )
-    test_set2 = load_dataset(
-        data_transforms_augmentations, dataset_name=dataset_name, is_train=False
-    )
-
-    train_set = ConcatDataset([train_set1, train_set2])
-    test_set = ConcatDataset([test_set1, test_set2])
+    train_set = ConcatDataset([train_set_origin, train_set_gray_scale, train_set_normalize,
+                               train_set_horizontal_flip, train_set_color_jitter])
 
     # Shuffle dataset to split into valid/test set.
     train_set, valid_set, test_set = divide_dataset(
@@ -99,18 +117,18 @@ def divide_dataset(
     train_set,
     test_set,
     data_name='rps',
-    train_ratio=.6,
+    train_ratio=.8,
     valid_ratio=.2,
     test_ratio=.2
 ):
     if data_name == 'rps':
         train_cnt = int(len(train_set) * train_ratio)
-        valid_cnt = int(len(train_set) * valid_ratio)
-        test_cnt = len(train_set) - train_cnt - valid_cnt
+        valid_cnt = int(len(train_set) - train_cnt)
+        # test_cnt = len(train_set) - train_cnt - valid_cnt
 
-        train_set, valid_set, test_set = random_split(
+        train_set, valid_set = random_split(
             train_set,
-            [train_cnt, valid_cnt, test_cnt]
+            [train_cnt, valid_cnt]
         )
     else:
         raise NotImplementedError('You need to specify dataset name.')
