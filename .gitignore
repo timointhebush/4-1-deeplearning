@@ -29,3 +29,4 @@ bin-release/
 *.zip
 
 **/.idea
+**/trained_models
