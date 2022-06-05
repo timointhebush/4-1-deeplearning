@@ -8,8 +8,7 @@ import torch.optim as optim
 from classification.data_loader import get_loaders
 from classification.trainer import Trainer
 
-from classification.models.fc_model import FullyConnectedClassifier
-from classification.models.cnn_model import ConvolutionalClassifier
+from classification.model_loader import get_model
 
 def define_argparser():
     p = argparse.ArgumentParser()
@@ -17,7 +16,7 @@ def define_argparser():
     p.add_argument('--model_fn', required=True)
     p.add_argument('--gpu_id', type=int, default=0 if torch.cuda.is_available() else -1)
 
-    p.add_argument('--train_ratio', type=float, default=.6)
+    p.add_argument('--train_ratio', type=float, default=.8)
     p.add_argument('--valid_ratio', type=float, default=.2)
     p.add_argument('--test_ratio', type=float, default=.2)
 
@@ -35,18 +34,6 @@ def define_argparser():
 
     return config
 
-
-def get_model(config):
-    if config.model_name == 'fc':
-        model = FullyConnectedClassifier(28**2, 10)
-    elif config.model_name == 'cnn':
-        model = ConvolutionalClassifier(10)
-    else:
-        raise NotImplementedError('You need to specify model name.')
-
-    return model
-
-
 def main(config):
     sys.stdout = open(config.model_fn + ".txt", 'w')
 
@@ -59,7 +46,8 @@ def main(config):
     print("Valid:", len(valid_loader.dataset))
     print("Test:", len(test_loader.dataset))
 
-    model = get_model(config).to(device)
+    model, input_size = get_model(config)
+    model.to(device)
     optimizer = optim.Adam(model.parameters())
     crit = nn.NLLLoss()
 
